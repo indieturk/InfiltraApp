@@ -117,9 +117,7 @@
           <h3 class="section-title">Flash Firmware</h3>
 
           <label for="deviceSelect" class="hint">Device / Manifest</label>
-          <select id="deviceSelect">
-            <!-- populated by JS -->
-          </select>
+          <select id="deviceSelect"></select>
 
           <div class="hint">Note: Entries marked <b>Coming soon</b> are placeholders and not yet available.</div>
 
@@ -154,16 +152,18 @@
       window.navigator.standalone === true;
 
     const isChrome = () => /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+    const isEdge = () => /Edg/.test(navigator.userAgent);
     const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent);
 
     const updateGate = () => {
       if (isStandalone()) {
         installGate.style.display = "none";
         mainUI.classList.remove("hidden");
-      } else if (isChrome() || isIOS()) {
+      } else if (isChrome() || isEdge() || isIOS()) {
         installGate.style.display = "block";
         mainUI.classList.add("hidden");
         gateMsg.textContent = "For the best experience and to enable device flashing, please install Infiltra™ as an app.";
+        installBtn.style.display = "inline-block";
       } else {
         installGate.style.display = "block";
         mainUI.classList.add("hidden");
@@ -171,29 +171,34 @@
         installBtn.style.display = "none";
       }
     };
-    updateGate();
-
-    window.addEventListener("appinstalled", () => {
-      deferredPrompt = null;
-      updateGate();
-    });
 
     window.addEventListener("beforeinstallprompt", (e) => {
       e.preventDefault();
       deferredPrompt = e;
+      updateGate();
     });
 
     installBtn.addEventListener("click", async () => {
       if (deferredPrompt) {
         deferredPrompt.prompt();
-        await deferredPrompt.userChoice;
+        const choice = await deferredPrompt.userChoice;
         deferredPrompt = null;
+        if(choice.outcome === "accepted"){
+          gateMsg.textContent = "App yüklendi! Artık uygulamayı kullanabilirsiniz.";
+        }
+        updateGate();
       } else {
         alert("Use your browser menu → Add to Home screen.");
       }
     });
 
-    /********** Categories & devices (Coming soon placeholders) **********/
+    window.addEventListener("appinstalled", () => {
+      deferredPrompt = null;
+      gateMsg.textContent = "App yüklendi! Artık uygulamayı kullanabilirsiniz.";
+      updateGate();
+    });
+
+    /********** Categories & devices (senin orijinal katalog) **********/
     const categories = [
       { id:"m5stack",  label:"M5Stack" },
       { id:"lilygo",   label:"Lilygo" },
@@ -224,8 +229,7 @@
     const tabsEl = document.getElementById("tabs");
     const deviceListEl = document.getElementById("deviceList");
     const deviceSelect = document.getElementById("deviceSelect");
-    const flashBtn = document.getElementById("flashBtn");
-    const flashActivate = document.getElementById("flashActivate");
+    const flashBtn = document.getElementById("flashBtn");displaynst flashActivate = document.getElementById("flashActivate");
 
     let activeCat = "m5stack";
 
@@ -236,305 +240,42 @@
         b.className = "tab" + (cat.id===activeCat ? " active":"");
         b.textContent = cat.label;
         b.onclick = ()=>{ activeCat = cat.id; renderTabs(); renderDevices(); syncSelect(); };
-        tabsEl.appendChild(b);
+     tabsEl.appendChild(b);
       });
     }
 
     function renderDevices(){
       deviceListEl.innerHTML = "";
-      (catalog[activeCat]||[]).forEach(item=>{
-        const div = document.createElement("div");
-        div.className = "device";
-        div.innerHTML = `
-          <h4>${item.name}</h4>
-          <div class="pill ${item.status==='soon'?'soon':'ready'}">
-            ${item.version}
-          </div>
-        `;
-        deviceListEl.appendChild(div);
+      catalog[activeCat].forEach(dev=>{
+        const d = document.createElement("div");
+        d.className = "device";
+        d.innerHTML = `<h4>${dev.name}</h4>
+                       <span class="pill ${dev.status}">${dev.version}</span>`;
+        deviceListEl.appendChild(d);
       });
     }
 
     function syncSelect(){
       deviceSelect.innerHTML = "";
-      (catalog[activeCat]||[]).forEach(item=>{
-        const opt = document.createElement("option");
-        opt.textContent = `${item.name} — ${item.version}`;
-        opt.value = item.manifest || "";
-        opt.disabled = item.status!=="ready";
-        deviceSelect.appendChild(opt);
+      catalog[activeCat].forEach(dev=>{
+        const o = document.createElement("option");
+        o.value = dev.manifest || "";
+        o.textContent = dev.name + (dev.version ? " ("+dev.version+")":"");
+        o.disabled = dev.status==="soon";
+        deviceSelect.appendChild(o);
       });
-      const firstReady = Array.from(deviceSelect.options).find(o=>!o.disabled);
-      if(firstReady){
-        deviceSelect.value = firstReady.value;
-        flashBtn.setAttribute("manifest", firstReady.value);
-        flashActivate.disabled = false;
-      }else{
-        deviceSelect.value = "";
-        flashBtn.setAttribute("manifest", "");
-        flashActivate.disabled = true;
-      }
+      flashBtn.manifest = deviceSelect.value;
     }
 
     deviceSelect.addEventListener("change", ()=>{
-      const val = deviceSelect.value;
-      flashBtn.setAttribute("manifest", val);
-      flashActivate.disabled = !val;
+      flashBtn.manifest = deviceSelect.value;
     });
 
+    /********** Init **********/
     renderTabs();
     renderDevices();
     syncSelect();
-
-    window.matchMedia("(display-mode: standalone)").addEventListener("change", updateGate);
-  </script>
-</body>
-</html>    .gate{
-      padding:28px; max-width:560px; margin:0 auto; text-align:center;
-      display:none;
-    }
-    .gate h2{margin:0 0 12px; color:var(--brand)}
-    .gate p{color:var(--fg); opacity:.9}
-    .row{display:flex; gap:18px; flex-wrap:wrap}
-    .col{flex:1 1 320px}
-
-    .card{padding:20px}
-    .section-title{margin:0 0 12px; color:var(--brand); font-size:18px}
-
-    .tabs{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px}
-    .tab{
-      border:1px solid var(--outline); background:#0f203f; color:var(--fg);
-      padding:8px 12px; border-radius:999px; cursor:pointer; font-weight:600;
-      transition:.15s transform, .15s background;
-    }
-    .tab.active{background:var(--blue); border-color:transparent; color:#fff}
-    .tab:hover{transform:translateY(-1px)}
-
-    .device-list{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px}
-    .device{
-      border:1px solid var(--outline); border-radius:14px; padding:12px; background:#0d1c36;
-    }
-    .device h4{margin:0 0 6px}
-    .pill{display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:700}
-    .pill.soon{background:#1f2b43; color:#9fb3d1; border:1px dashed #2f415f}
-    .pill.ready{background:#0f5132; color:#a8ffce}
-
-    select, button{
-      width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--outline);
-      background:#0f203f; color:var(--fg); font-weight:600;
-    }
-    button.primary{
-      background:var(--blue); border:0; color:#fff; cursor:pointer;
-      transition:.15s transform, .15s filter;
-    }
-    button.primary:hover{transform:translateY(-1px); filter:brightness(1.05)}
-    button.primary:disabled{opacity:.6; cursor:not-allowed}
-
-    .footer{margin-top:16px; text-align:center; color:var(--muted); font-size:12px}
-    .hint{font-size:12px; color:var(--muted); margin-top:8px}
-    .hidden{display:none !important}
-  </style>
-</head>
-<body>
-  <div class="app">
-
-    <!-- Brand -->
-    <div class="brand">
-      <h1>Infiltra™ Web Flasher</h1>
-      <p>Modern ESP flasher • PWA • Web Serial</p>
-    </div>
-
-    <!-- PWA Install Gate -->
-    <div id="installGate" class="gate">
-      <h2>Install to continue</h2>
-      <p>For the best experience and to enable device flashing, please install Infiltra™ as an app.</p>
-      <div class="row" style="margin-top:12px">
-        <div class="col">
-          <button id="installBtn" class="primary">Install Infiltra™</button>
-          <div class="hint">If you don’t see a prompt, use your browser menu → <em>Add to Home screen</em>.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Main UI -->
-    <div id="mainUI" class="card hidden">
-      <div class="row">
-        <!-- Left: Categories & devices -->
-        <div class="col">
-          <h3 class="section-title">Choose Category</h3>
-          <div id="tabs" class="tabs"></div>
-
-          <div class="device-list" id="deviceList"></div>
-        </div>
-
-        <!-- Right: Flash panel -->
-        <div class="col">
-          <h3 class="section-title">Flash Firmware</h3>
-
-          <label for="deviceSelect" class="hint">Device / Manifest</label>
-          <select id="deviceSelect">
-            <!-- populated by JS -->
-          </select>
-
-          <div class="hint">Note: Entries marked <b>Coming soon</b> are placeholders and not yet available.</div>
-
-          <div style="margin-top:14px">
-            <esp-web-install-button id="flashBtn" manifest="">
-              <button class="primary" slot="activate" id="flashActivate">Flash Infiltra™</button>
-            </esp-web-install-button>
-          </div>
-
-          <div class="footer">© 2025 Infiltra™ — Built with ESP Web Tools</div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <script>
-    /********** PWA Service Worker **********/
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js");
-    }
-
-    /********** PWA Install Barrier **********/
-    let deferredPrompt = null;
-    const installGate = document.getElementById("installGate");
-    const mainUI = document.getElementById("mainUI");
-    const installBtn = document.getElementById("installBtn");
-
-    // isStandalone: Chrome/Edge (display-mode) + iOS Safari (navigator.standalone)
-    const isStandalone = () =>
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.navigator.standalone === true;
-
-    const updateGate = () => {
-      if (isStandalone()) {
-        installGate.style.display = "none";
-        mainUI.classList.remove("hidden");
-      } else {
-        installGate.style.display = "block";
-        mainUI.classList.add("hidden");
-      }
-    };
     updateGate();
-
-    window.addEventListener("appinstalled", () => {
-      deferredPrompt = null;
-      updateGate();
-    });
-
-    window.addEventListener("beforeinstallprompt", (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-    });
-
-    installBtn.addEventListener("click", async () => {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        await deferredPrompt.userChoice;
-        deferredPrompt = null;
-      } else {
-        alert("Use your browser menu → Add to Home screen.");
-      }
-    });
-
-    /********** Categories & devices (Coming soon placeholders) **********/
-    const categories = [
-      { id:"m5stack",  label:"M5Stack" },
-      { id:"lilygo",   label:"Lilygo" },
-      { id:"esp",      label:"ESP Generic" },
-      { id:"headless", label:"Headless" },
-      { id:"custom",   label:"Custom" }
-    ];
-
-    // Each category has one example entry; only one (M5StickC Plus 2) is wired to a sample manifest.
-    const catalog = {
-      m5stack: [
-        { name:"M5StickC Plus 2", version:"v1.0.0", status:"ready", manifest:"bin/m5stickcplus2.json" },
-        { name:"M5StickC Plus 1", version:"Coming soon", status:"soon" }
-      ],
-      lilygo: [
-        { name:"T-Display S3", version:"Coming soon", status:"soon" }
-      ],
-      esp: [
-        { name:"ESP32 Generic", version:"Coming soon", status:"soon" }
-      ],
-      headless: [
-        { name:"ESP32 Headless", version:"Coming soon", status:"soon" }
-      ],
-      custom: [
-        { name:"Custom Board", version:"Coming soon", status:"soon" }
-      ]
-    };
-
-    const tabsEl = document.getElementById("tabs");
-    const deviceListEl = document.getElementById("deviceList");
-    const deviceSelect = document.getElementById("deviceSelect");
-    const flashBtn = document.getElementById("flashBtn");
-    const flashActivate = document.getElementById("flashActivate");
-
-    let activeCat = "m5stack";
-
-    function renderTabs(){
-      tabsEl.innerHTML = "";
-      categories.forEach(cat=>{
-        const b = document.createElement("button");
-        b.className = "tab" + (cat.id===activeCat ? " active":"");
-        b.textContent = cat.label;
-        b.onclick = ()=>{ activeCat = cat.id; renderTabs(); renderDevices(); syncSelect(); };
-        tabsEl.appendChild(b);
-      });
-    }
-
-    function renderDevices(){
-      deviceListEl.innerHTML = "";
-      (catalog[activeCat]||[]).forEach(item=>{
-        const div = document.createElement("div");
-        div.className = "device";
-        div.innerHTML = `
-          <h4>${item.name}</h4>
-          <div class="pill ${item.status==='soon'?'soon':'ready'}">
-            ${item.version}
-          </div>
-        `;
-        deviceListEl.appendChild(div);
-      });
-    }
-
-    function syncSelect(){
-      deviceSelect.innerHTML = "";
-      (catalog[activeCat]||[]).forEach(item=>{
-        const opt = document.createElement("option");
-        opt.textContent = `${item.name} — ${item.version}`;
-        opt.value = item.manifest || "";
-        opt.disabled = item.status!=="ready";
-        deviceSelect.appendChild(opt);
-      });
-      const firstReady = Array.from(deviceSelect.options).find(o=>!o.disabled);
-      if(firstReady){
-        deviceSelect.value = firstReady.value;
-        flashBtn.setAttribute("manifest", firstReady.value);
-        flashActivate.disabled = false;
-      }else{
-        deviceSelect.value = "";
-        flashBtn.setAttribute("manifest", "");
-        flashActivate.disabled = true;
-      }
-    }
-
-    deviceSelect.addEventListener("change", ()=>{
-      const val = deviceSelect.value;
-      flashBtn.setAttribute("manifest", val);
-      flashActivate.disabled = !val;
-    });
-
-    renderTabs();
-    renderDevices();
-    syncSelect();
-
-    // Re-check gate if user opens as app later
-    window.matchMedia("(display-mode: standalone)").addEventListener("change", updateGate);
   </script>
 </body>
 </html>
