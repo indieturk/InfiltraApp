@@ -1,0 +1,66 @@
+{
+  "m5stack": [
+    {
+      "id": "m5stickcplus2",
+      "name": "M5StickC Plus 2",
+      "description": "ESP32-PICO-V3",
+      "manifest": "/manifests/m5stickcplus2.json"
+    },
+    {
+      "id": "m5coming",
+      "name": "Coming Soon",
+      "description": "More devices coming soon...",
+      "manifest": ""
+    }
+  ],
+  "lilygo": [
+    {
+      "id": "ttgo-esp32",
+      "name": "LilyGo TTGO ESP32",
+      "description": "ESP32 generic board",
+      "manifest": "/manifests/lilygo-ttgo.json"
+    },
+    {
+      "id": "lilycoming",
+      "name": "Coming Soon",
+      "description": "Stay tuned for updates",
+      "manifest": ""
+    }
+  ],
+  "esp": [
+    {
+      "id": "esp-generic",
+      "name": "ESP32 Generic",
+      "description": "Works with most ESP32 modules",
+      "manifest": "/manifests/esp-generic.json"
+    },
+    {
+      "id": "espcoming",
+      "name": "Coming Soon",
+      "description": "More generic ESP boards",
+      "manifest": ""
+    }
+  ],
+  "headless": [
+    {
+      "id": "headless-1",
+      "name": "Headless Mode",
+      "description": "Run without display",
+      "manifest": "/manifests/headless.json"
+    },
+    {
+      "id": "headless-coming",
+      "name": "Coming Soon",
+      "description": "More headless devices coming soon",
+      "manifest": ""
+    }
+  ],
+  "custom": [
+    {
+      "id": "custom-1",
+      "name": "Custom Firmware",
+      "description": "Upload your own manifest",
+      "manifest": ""
+    }
+  ]
+}
